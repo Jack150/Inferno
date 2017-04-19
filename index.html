@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8 />
+    <title>Lab 09 Solution</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: whitesmoke;
+            font-family: Lato, sans-serif;
+            color: #0D0000;
+        }
+        header {
+            padding: 6px 10%;
+        }
+        h1 {
+            display: inline-block;
+            margin-right: 20px;
+            color: #001323;
+        }
+        h2 {
+            display: inline-block;
+            color: #001323;
+        }
+        #map {
+            width: 80%;
+            height: 540px;
+            margin: 10px auto;
+        }
+        footer {
+            padding: 6px 10%;
+            width: 80%;
+        }
+        p {
+            font-size: 1em;
+            color: #001323;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Denver</h1>
+        <h2>Map of Fire Stations, Day Programs and Food Stores</h2>
+    </header>
+
+    <div id='map'></div>
+
+    <footer>
+        <p>Map authored by Jack Smarr</p>
+        <p>Map of Denver showing Fire Stations, Day Care Programs and Food Stores within a one kilometer radius of each other.</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="data/denver-fire-stations.js"></script>
+    <script src="data/after-school-programs.js"></script>
+    <script src="data/denver-food-stores.js"></script>
+    <script>
+        var map = L.map('map', {
+            center: [39.7256, -104.9252],
+            zoom: 11,
+        });
+        var tiles = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+        commonStyles = {
+            weight: .5,
+            stroke: 0,
+            fillOpacity: 1,
+            radius: 3
+        }
+        var geoJsonLayers = {};
+        var layerInfo = {   //create layers to avoid typing in three separate
+            programsLayer: {source: programs, color: 'purple'},
+            storesLayer: {source: stores, color: 'blue'},
+            stationsLayer: {source: stations, color: 'red'}
+        };
+        for(var layer in layerInfo) {
+            geoJsonLayers[layer] = L.geoJson(layerInfo[layer].source, { //added variable stationsLayer applying methods to GeoJson layer
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, commonStyles);
+                },
+                style: function(feature) { //leaflet style option
+                    return {
+                        color: layerInfo[layer].color
+                    }
+                },
+                onEachFeature(feature, layer){
+                    if(feature.properties.STATION_NU) {
+                        layer.bindTooltip('station id: ' + feature.properties.STATION_NU);
+                    } else if(feature.properties.STORE_NAME) {
+                        layer.bindTooltip('store name: ' + feature.properties.STORE_NAME);
+                    } else if(feature.properties.ORGANIZATI) {
+                        layer.bindTooltip('program name:'  + feature.properties.ORGANIZATI);
+                    }
+                }
+            }).addTo(map);
+        }
+
+
+
+
+        //console.log(geoJsonLayers)
+
+        var sourcesLabels = {
+                      "Stations": geoJsonLayers.stationsLayer,
+                      "Programs": geoJsonLayers.programsLayer,
+                      "Stores": geoJsonLayers.storesLayer
+                    }
+       //console.log(sourcesLabels); checked to see if labels were coming through
+       L.control.layers(null, sourcesLabels, { collapsed:false }).addTo(map); //added labels
+
+
+        map.on('click', function(e) {
+            for(var leafletLayer in geoJsonLayers) {
+                geoJsonLayers[leafletLayer].eachLayer(function(layer) {
+                    var distance = e.latlng.distanceTo(layer.getLatLng()) / 1000; // distance as km
+                    if (distance > 1) {
+                        layer.setStyle({
+                            stroke: false,
+                            fill: false
+                        });
+                    } else {
+                        layer.setStyle({
+                            stroke: true,
+                            fill: true
+                        });
+                    }
+                });
+            }
+
+
+
+          });
+
+
+        </script>
+
+        </body>
+
+        </html>
